@@ -1,0 +1,63 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "env": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "topicNames": {
+      "type": "array"
+    },
+    "keyvaultName": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "isProd": "[equals(parameters('env'), 'prod')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ServiceBus/namespaces",
+      "apiVersion": "2022-10-01-preview",
+      "name": "demobicepevdbservicebus",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Premium",
+        "capacity": 1,
+        "tier": "Premium"
+      },
+      "properties": {
+        "minimumTlsVersion": "1.2"
+      }
+    },
+    {
+      "copy": {
+        "name": "topic",
+        "count": "[length(parameters('topicNames'))]"
+      },
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', 'demobicepevdbservicebus', parameters('topicNames')[copyIndex()])]",
+      "properties": {
+        "enablePartitioning": "[variables('isProd')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', 'demobicepevdbservicebus')]"
+      ]
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-02-01",
+      "name": "[format('{0}/{1}', parameters('keyvaultName'), 'ServiceBusConnString')]",
+      "properties": {
+        "value": "[listKeys(format('{0}/AuthorizationRules/RootManageSharedAccessKey', resourceId('Microsoft.ServiceBus/namespaces', 'demobicepevdbservicebus')), '2022-10-01-preview').primaryConnectionString]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', 'demobicepevdbservicebus')]"
+      ]
+    }
+  ]
+}

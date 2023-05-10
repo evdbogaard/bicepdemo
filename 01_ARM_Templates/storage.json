@@ -1,0 +1,46 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "env": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "keyvaultName": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "isProd": "[equals(parameters('env'), 'prod')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2022-09-01",
+      "name": "bicepdemoevdbst",
+      "location": "[parameters('location')]",
+      "kind": "StorageV2",
+      "sku": {
+        "name": "[if(variables('isProd'), 'Standard_RAGZRS', 'Standard_LRS')]"
+      },
+      "properties": {
+        "supportsHttpsTrafficOnly": true,
+        "minimumTlsVersion": "TLS1_2",
+        "accessTier": "Hot"
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-02-01",
+      "name": "[format('{0}/{1}', parameters('keyvaultName'), 'StorageConnString')]",
+      "properties": {
+        "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', 'bicepdemoevdbst', environment().suffixes.storage, listKeys(resourceId('Microsoft.Storage/storageAccounts', 'bicepdemoevdbst'), '2022-09-01').keys[0].value)]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', 'bicepdemoevdbst')]"
+      ]
+    }
+  ]
+}

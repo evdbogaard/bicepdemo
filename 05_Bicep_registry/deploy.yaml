@@ -1,0 +1,97 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: build
+    jobs:
+      - job: generate_artifact
+        displayName: "Generate artifacts"
+        steps:
+        - task: PowerShell@2
+          displayName: Copy changed files
+          inputs:
+            targetType: 'inline'
+            script: |
+              $changedFiles = git diff --name-only --diff-filter=d HEAD^ HEAD
+              $artifactsDirectory = "$(Build.ArtifactStagingDirectory)"
+              foreach($fileName in $changedFiles)
+              {
+                Write-Host "Found $fileName"
+                if (!$fileName.EndsWith(".bicep"))
+                {
+                  continue
+                }
+
+                $file = Get-ChildItem $fileName
+                az bicep build -f $fileName --outfile "${artifactsDirectory}/$($file.BaseName).json"
+              }
+
+        - publish: $(Build.ArtifactStagingDirectory)
+          artifact: $(Build.BuildNumber)
+
+  - stage: publish_dev
+    displayName: "Publish to DEV container registry"
+    dependsOn: build
+    condition: and(succeeded(), not(${{ parameters.releaseBuild }}))
+    jobs:
+      - deployment: publish_to_registry
+        displayName: Publish to registry
+        environment: 'BicepDevEnv'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+              - task: AzureCLI@2
+                displayName: 'Publish to registry'
+                inputs:
+                  azureSubscription: 'Bicep ARM DEV'
+                  scriptType: 'pscore'
+                  scriptLocation: 'inlineScript'
+                  inlineScript: |
+                    $files = Get-ChildItem $(Pipeline.Workspace) -Filter "*.json" -R
+
+                    foreach ($file in $files)
+                    {
+                      $fileBaseName = $file.BaseName
+                      $jsonFile = Get-Content $file.FullName | Out-String | ConvertFrom-Json
+                      $version = pre_${Build.BuildNumber}
+
+                      Write-Host "Pushing to registry ${fileBaseName}:${version}"
+                      az bicep publish --file $file.FullName --target "br:devregistry.azurecr.io/bicep/modules/${fileBaseName}:${version}"
+                    }
+
+  - stage: publish
+    displayName: "Publish to container registry"
+    dependsOn: build
+    condition: and(succeeded(), ${{ parameters.releaseBuild }})
+    jobs:
+      - deployment: publish_to_registry
+        displayName: Publish to registry
+        environment: 'BicepEnv'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+              - task: AzureCLI@2
+                displayName: 'Publish to registry'
+                inputs:
+                  azureSubscription: 'Bicep ARM'
+                  scriptType: 'pscore'
+                  scriptLocation: 'inlineScript'
+                  inlineScript: |
+                    $files = Get-ChildItem $(Pipeline.Workspace) -Filter "*.json" -R
+
+                    foreach ($file in $files)
+                    {
+                      $fileBaseName = $file.BaseName
+                      $jsonFile = Get-Content $file.FullName | Out-String | ConvertFrom-Json
+                      $version = $jsonFile.metadata.version
+
+                      Write-Host "Pushing to registry ${fileBaseName}:${version}"
+                      az bicep publish --file $file.FullName --target "br:evdbregistry.azurecr.io/bicep/modules/${fileBaseName}:${version}"
+                    }

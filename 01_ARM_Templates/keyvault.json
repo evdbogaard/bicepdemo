@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "string"
+    },
+    "prinicpalId": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "keyVaultAdministrator": "00482a5a-887f-4fb3-b363-3b7fe8e74483"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2019-09-01",
+      "name": "demobicepevdbkv",
+      "location": "[parameters('location')]",
+      "properties": {
+        "enabledForDeployment": true,
+        "enabledForTemplateDeployment": true,
+        "enabledForDiskEncryption": true,
+        "enableRbacAuthorization": true,
+        "tenantId": "[tenant().tenantId]",
+        "sku": {
+          "name": "standard",
+          "family": "A"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2020-10-01-preview",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', 'demobicepevdbkv'), parameters('prinicpalId'), variables('keyVaultAdministrator'))]",
+      "properties": {
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', variables('keyVaultAdministrator'))]",
+        "principalId": "[parameters('prinicpalId')]",
+        "principalType": "User"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', 'demobicepevdbkv')]"
+      ]
+    }
+  ]
+}
