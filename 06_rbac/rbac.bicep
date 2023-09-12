@@ -24,7 +24,7 @@ module configurationReader 'rbac-resource-group.bicep' = if (contains(permission
     principalId: principalId
     roleDefinitionId: definitions['App Configuration Data Reader']
   }
-  scope: resourceGroup('BicepDemo2')
+  scope: resourceGroup('BicepDemo')
 }
 
 var documentStorageRgs = ['BicepDemo-Documents-NL', 'BicepDemo-Documents-EU']
@@ -56,7 +56,7 @@ module serviceBusReceiver 'rbac-servicebus.bicep' = if (contains(permissions, 's
     roleDefinitionId: definitions['Azure Service Bus Data Receiver']
     env: env
   }
-  scope: resourceGroup('BicepDemo2')
+  scope: resourceGroup('BicepDemo')
 }
 
 module serviceBusSender 'rbac-servicebus.bicep' = if (contains(permissions, 'serviceBusSender')) {
@@ -67,5 +67,5 @@ module serviceBusSender 'rbac-servicebus.bicep' = if (contains(permissions, 'ser
     roleDefinitionId: definitions['Azure Service Bus Data Sender']
     env: env
   }
-  scope: resourceGroup('BicepDemo2')
+  scope: resourceGroup('BicepDemo')
 }

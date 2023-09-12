@@ -9,5 +9,16 @@
         }
       }
     }
+  },
+  "experimentalFeaturesEnabled": {
+  },
+  "moduleAliases": {
+    "ts": {},
+    "br": {
+      "demoRegistry": {
+        "registry": "bicepdemoevdbacr.azurecr.io",
+        "modulePath": "modules/bicep"
+      }
+    }
   }
 }

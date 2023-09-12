@@ -23,7 +23,8 @@ module serviceBus 'servicebus.bicep' = {
   }
 }
 
-module storageAccount 'storage.bicep' = {
+module storageAccount 'br:bicepdemoevdbacr.azurecr.io/modules/bicep/storage:v1' = {
+{
   name: 'deployStorage'
   params: {
     env: env

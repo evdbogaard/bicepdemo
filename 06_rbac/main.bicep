@@ -20,7 +20,6 @@ module rbac 'br:evdbregistry.azurecr.io/bicep/modules/rbac:v1' = {
     permissions: [
       'configurationReader'
       'documentStorageContributor'
-      'serviceBusSender'
     ]
     principalId: identity.outputs.principalId
   }
