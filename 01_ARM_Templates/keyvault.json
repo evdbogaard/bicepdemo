@@ -6,7 +6,8 @@
       "type": "string"
     },
     "prinicpalId": {
-      "type": "string"
+      "type": "string",
+      "defaultValue": ""
     }
   },
   "variables": {
